@@ -46,6 +46,7 @@ internal class Consumer : IDisposable
 
         _logger.LogInformation($"Connecting to Kafka: {servers}");
         _dbContext = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") == null ? null : new DBContext();
+        _logger.LogInformation($"DB Context Created");
     }
 
     public void StartListening()

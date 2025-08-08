@@ -6,6 +6,7 @@
 
 # Python
 import os
+import time
 import random
 from concurrent import futures
 
@@ -76,6 +77,8 @@ def get_product_list(request_product_ids):
 
         # Feature flag scenario - Cache Leak
         if check_feature_flag("recommendationCacheFailure"):
+            # Always sleep when flag is set to make the API slowness more apparent
+            time.sleep(3)
             span.set_attribute("app.recommendation.cache_enabled", True)
             if random.random() < 0.5 or first_run:
                 first_run = False
