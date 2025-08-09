@@ -508,6 +508,42 @@ services:
         condition: service_started
     logging: *logging
 
+  # DB Connection Exhauster service
+  db-connection-exhauster:
+    image: ${IMAGE_NAME}:${DEMO_VERSION}-db-connection-exhauster
+    container_name: db-connection-exhauster
+    build:
+      context: ./
+      dockerfile: ${DB_CONNECTION_EXHAUSTER_DOCKERFILE}
+      cache_from:
+        - ${IMAGE_NAME}:${IMAGE_VERSION}-db-connection-exhauster
+    deploy:
+      resources:
+        limits:
+          memory: 50M
+    restart: unless-stopped
+    environment:
+      - DB_HOST=postgresql
+      - DB_NAME=otel
+      - DB_USER=root
+      - DB_PASSWORD=otel
+      - DB_PORT=5432
+      - FLAGD_HOST
+      - FLAGD_PORT
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+      - OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_SERVICE_NAME=db-connection-exhauster
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+    depends_on:
+      otel-collector:
+        condition: service_started
+      flagd:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    logging: *logging
+
   # ******************
   # Dependent Services
   # ******************

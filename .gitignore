@@ -49,6 +49,13 @@ test/tracetesting/tracetesting-vars.yaml
 /src/currency/proto
 /src/frontend/pb
 
+# Ignore VsCode and Intellij
+.vscode
+.idea
+
+# Ignore venv
+src/db_connection_exhauster/venv
+
 # Android
 *.apk
 
