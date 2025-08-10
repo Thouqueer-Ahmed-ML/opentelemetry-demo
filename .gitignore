@@ -55,6 +55,7 @@ test/tracetesting/tracetesting-vars.yaml
 
 # Ignore venv
 src/db_connection_exhauster/venv
+src/recommendation/venv
 
 # Android
 *.apk

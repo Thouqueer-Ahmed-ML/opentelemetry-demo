@@ -68,35 +68,74 @@ class RecommendationService(demo_pb2_grpc.RecommendationServiceServicer):
 def get_product_list(request_product_ids):
     global first_run
     global cached_ids
+    
     with tracer.start_as_current_span("get_product_list") as span:
+        
         max_responses = 5
 
         # Formulate the list of characters to list of strings
         request_product_ids_str = ''.join(request_product_ids)
         request_product_ids = request_product_ids_str.split(',')
 
-        # Feature flag scenario - Cache Leak
-        if check_feature_flag("recommendationCacheFailure"):
-            # Always sleep when flag is set to make the API slowness more apparent
-            time.sleep(3)
-            span.set_attribute("app.recommendation.cache_enabled", True)
-            if random.random() < 0.5 or first_run:
-                first_run = False
-                span.set_attribute("app.cache_hit", False)
+        span.set_attribute("app.recommendation.cache_enabled", True)
+
+        product_ids = []
+
+        if first_run:
+            # Fill cache on first run
+            cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
+            cached_ids = [x.id for x in cat_response.products]
+            product_ids = cached_ids
+            first_run = False
+
+        if not check_feature_flag("recommendationCacheFailure"):
+
+            # 50% chance of cache miss
+            if random.random() < 0.5:
+                
+                logger.info("get_product_list: cache hit")
+                span.set_attribute("app.cache_hit", True)
+                
+                product_ids = cached_ids[:3]
+            
+            else:
+            
                 logger.info("get_product_list: cache miss")
+                span.set_attribute("app.cache_hit", False)
+                
                 cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
                 response_ids = [x.id for x in cat_response.products]
+                
+                # Assume we're filling the cache with new products
                 cached_ids = cached_ids + response_ids
-                cached_ids = cached_ids + cached_ids[:len(cached_ids) // 4]
-                product_ids = cached_ids
-            else:
-                span.set_attribute("app.cache_hit", True)
-                logger.info("get_product_list: cache hit")
-                product_ids = cached_ids
+                product_ids = cached_ids[:3]
+        
         else:
-            span.set_attribute("app.recommendation.cache_enabled", False)
-            cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
-            product_ids = [x.id for x in cat_response.products]
+        
+            # Always sleep when flag is set to make the API slowness more apparent
+            time.sleep(3)
+
+            # 90% chance of cache miss
+            if random.random() > 0.1:
+
+                logger.info("get_product_list: cache miss")
+                span.set_attribute("app.cache_hit", False)
+                
+                cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
+                response_ids = [x.id for x in cat_response.products]
+                
+                # Assume we're filling the cache with new products
+                # Append 7 MB of data to increase memory usage
+                large_data = b'x' * (10 * 1024 * 1024)
+                cached_ids = cached_ids + [large_data]
+                product_ids = response_ids
+            
+            else:
+
+                logger.info("get_product_list: cache hit")
+                span.set_attribute("app.cache_hit", True)
+
+                product_ids = cached_ids[:3]
 
         span.set_attribute("app.products.count", len(product_ids))
 
