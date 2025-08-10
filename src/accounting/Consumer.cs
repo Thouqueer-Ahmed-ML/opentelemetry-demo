@@ -60,8 +60,30 @@ internal class Consumer : IDisposable
                 try
                 {
                     using var activity = MyActivitySource.StartActivity("order-consumed",  ActivityKind.Internal);
+
                     var consumeResult = _consumer.Consume();
-                    ProcessMessage(consumeResult.Message);
+                    bool messageProcessed = false;
+
+                    // Keep retrying the same message until it's successfully processed
+                    while (!messageProcessed && _isListening)
+                    {
+                        try
+                        {
+                            ProcessMessage(consumeResult.Message);
+                            messageProcessed = true;
+
+                            // Manually commit the offset after successful message processing
+                            _consumer.Commit(consumeResult);
+                            _logger.LogInformation("Successfully committed offset for message at partition {Partition}, offset {Offset}", consumeResult.Partition, consumeResult.Offset);
+                        }
+                        catch (Exception processingException)
+                        {
+                            _logger.LogError(processingException, "Error processing message at partition {Partition}, offset {Offset}. Retrying...", consumeResult.Partition, consumeResult.Offset);
+
+                            // Add a small delay before retrying to avoid overwhelming the system
+                            Thread.Sleep(3000);
+                        }
+                    }
                 }
                 catch (ConsumeException e)
                 {
@@ -79,22 +101,29 @@ internal class Consumer : IDisposable
 
     private void ProcessMessage(Message<string, byte[]> message)
     {
-        try
+        var order = OrderResult.Parser.ParseFrom(message.Value);
+        Log.OrderReceivedMessage(_logger, order);
+
+        if (_dbContext == null)
         {
-            var order = OrderResult.Parser.ParseFrom(message.Value);
-            Log.OrderReceivedMessage(_logger, order);
+            return;
+        }
 
-            if (_dbContext == null)
-            {
-                return;
-            }
-
+        // Check if order already exists before adding
+        if (!_dbContext.Orders.Any(o => o.Id == order.OrderId))
+        {
             var orderEntity = new OrderEntity
             {
                 Id = order.OrderId
             };
             _dbContext.Add(orderEntity);
-            foreach (var item in order.Items)
+        }
+
+        // Check and add order items only if they don't exist
+        foreach (var item in order.Items)
+        {
+            // Check by OrderId + ProductId combination
+            if (!_dbContext.CartItems.Any(ci => ci.OrderId == order.OrderId && ci.ProductId == item.Item.ProductId))
             {
                 var orderItem = new OrderItemEntity
                 {
@@ -105,10 +134,13 @@ internal class Consumer : IDisposable
                     Quantity = item.Item.Quantity,
                     OrderId = order.OrderId
                 };
-
                 _dbContext.Add(orderItem);
             }
+        }
 
+        // Check if shipping info already exists
+        if (!_dbContext.Shipping.Any(s => s.OrderId == order.OrderId))
+        {
             var shipping = new ShippingEntity
             {
                 ShippingTrackingId = order.ShippingTrackingId,
@@ -123,12 +155,9 @@ internal class Consumer : IDisposable
                 OrderId = order.OrderId
             };
             _dbContext.Add(shipping);
-            _dbContext.SaveChanges();
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Order parsing failed:");
-        }
+
+        _dbContext.SaveChanges();
     }
 
     private IConsumer<string, byte[]> BuildConsumer(string servers)
