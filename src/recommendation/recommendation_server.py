@@ -90,22 +90,22 @@ def get_product_list(request_product_ids):
 
         if not check_feature_flag("recommendationCacheFailure"):
 
-            # 50% chance of cache miss
-            if random.random() < 0.5:
-                
+            # 85% chance of cache miss
+            if random.random() < 0.15:
+
                 logger.info("get_product_list: cache hit")
-                span.set_attribute("app.cache_hit", True)
-                
+                rec_svc_metrics["app_cache_hits_counter"].add(1)
+
                 product_ids = cached_ids[:3]
-            
+
             else:
-            
+
                 logger.info("get_product_list: cache miss")
-                span.set_attribute("app.cache_hit", False)
-                
+                rec_svc_metrics["app_cache_misses_counter"].add(1)
+
                 cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
                 response_ids = [x.id for x in cat_response.products]
-                
+
                 # Assume we're filling the cache with new products
                 cached_ids = cached_ids + response_ids
                 product_ids = cached_ids[:3]
@@ -119,21 +119,21 @@ def get_product_list(request_product_ids):
             if random.random() > 0.1:
 
                 logger.info("get_product_list: cache miss")
-                span.set_attribute("app.cache_hit", False)
-                
+                rec_svc_metrics["app_cache_misses_counter"].add(1)
+
                 cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
                 response_ids = [x.id for x in cat_response.products]
-                
+
                 # Assume we're filling the cache with new products
                 # Append 7 MB of data to increase memory usage
                 large_data = b'x' * (10 * 1024 * 1024)
                 cached_ids = cached_ids + [large_data]
                 product_ids = response_ids
-            
+
             else:
 
                 logger.info("get_product_list: cache hit")
-                span.set_attribute("app.cache_hit", True)
+                rec_svc_metrics["app_cache_hits_counter"].add(1)
 
                 product_ids = cached_ids[:3]
 
