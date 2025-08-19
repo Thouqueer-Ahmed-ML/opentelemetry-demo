@@ -90,7 +90,7 @@ def get_product_list(request_product_ids):
 
         if not check_feature_flag("recommendationCacheFailure"):
 
-            # 85% chance of cache miss
+            # 85% chance of cache hit
             if random.random() < 0.15:
 
                 logger.info("get_product_list: cache hit")
