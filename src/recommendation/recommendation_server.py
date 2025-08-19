@@ -90,8 +90,8 @@ def get_product_list(request_product_ids):
 
         if not check_feature_flag("recommendationCacheFailure"):
 
-            # 85% chance of cache hit
-            if random.random() < 0.15:
+            # 80% chance of cache hit
+            if random.random() > 0.20:
 
                 logger.info("get_product_list: cache hit")
                 rec_svc_metrics["app_cache_hits_counter"].add(1)
@@ -171,7 +171,6 @@ def check_feature_flag(flag_name: str):
 if __name__ == "__main__":
     service_name = must_map_env('OTEL_SERVICE_NAME')
     api.set_provider(FlagdProvider(host=os.environ.get('FLAGD_HOST', 'flagd'), port=os.environ.get('FLAGD_PORT', 8013)))
-    api.add_hooks([TracingHook()])
 
     # Initialize Traces and Metrics
     tracer = trace.get_tracer_provider().get_tracer(service_name)
