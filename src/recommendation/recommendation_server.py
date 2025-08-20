@@ -107,7 +107,7 @@ def get_product_list(request_product_ids):
                 response_ids = [x.id for x in cat_response.products]
 
                 # Assume we're filling the cache with new products
-                cached_ids = cached_ids + response_ids
+                cached_ids = list(set(cached_ids + response_ids))
                 product_ids = cached_ids[:3]
         
         else:
@@ -115,8 +115,8 @@ def get_product_list(request_product_ids):
             # Always sleep when flag is set to make the API slowness more apparent
             time.sleep(3)
 
-            # 90% chance of cache miss
-            if random.random() > 0.1:
+            # 70% chance of cache miss
+            if random.random() > 0.3:
 
                 logger.info("get_product_list: cache miss")
                 rec_svc_metrics["app_cache_misses_counter"].add(1)
@@ -169,7 +169,7 @@ def check_feature_flag(flag_name: str):
 
 
 if __name__ == "__main__":
-    print("Test Purposes. To ensure image is being fetched etc.")
+
     service_name = must_map_env('OTEL_SERVICE_NAME')
     api.set_provider(FlagdProvider(host=os.environ.get('FLAGD_HOST', 'flagd'), port=os.environ.get('FLAGD_PORT', 8013)))
 
@@ -212,4 +212,5 @@ if __name__ == "__main__":
     server.add_insecure_port(f'[::]:{port}')
     server.start()
     logger.info(f'Recommendation service started, listening on port {port}')
+    logger.info("Test Purposes. To ensure image is being fetched etc.")
     server.wait_for_termination()
