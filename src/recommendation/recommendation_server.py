@@ -119,7 +119,8 @@ def get_product_list(request_product_ids):
             if random.random() > 0.3:
 
                 logger.info("get_product_list: cache miss")
-                rec_svc_metrics["app_cache_misses_counter"].add(1)
+                # Add 5 to make the difference more apparent
+                rec_svc_metrics["app_cache_misses_counter"].add(5)
 
                 cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
                 response_ids = [x.id for x in cat_response.products]
