@@ -125,9 +125,8 @@ def get_product_list(request_product_ids):
                 response_ids = [x.id for x in cat_response.products]
 
                 # Assume we're filling the cache with new products
-                # Append 1 MB of data to increase memory usage
-                # This will consume pod memory of 100M in 10 mins
-                large_data = b'x' * (1 * 1024 * 1024)
+                # Append 1 KB of data to increase memory usage
+                large_data = b'x' * 10000
                 cached_ids = cached_ids + [large_data]
                 product_ids = response_ids
 
