@@ -126,8 +126,8 @@ def get_product_list(request_product_ids):
                 product_ids = response_ids[:3]
 
                 # Assume we're filling the cache with new products
-                # Append 50 KB of data to increase memory usage
-                large_data = b'x' * 50000
+                # Append 1 MB of data to increase memory usage
+                large_data = b'x' * (1 * 1000 * 1000)
                 cached_ids = cached_ids + [large_data]
 
             else:
