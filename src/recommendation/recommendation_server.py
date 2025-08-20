@@ -123,12 +123,12 @@ def get_product_list(request_product_ids):
 
                 cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
                 response_ids = [x.id for x in cat_response.products]
-                product_ids = response_ids
+                product_ids = response_ids[:3]
 
                 # Assume we're filling the cache with new products
-                # Append 1 KB of data to increase memory usage
-                # large_data = b'x' * 10000
-                # cached_ids = cached_ids + [large_data]
+                # Append 50 KB of data to increase memory usage
+                large_data = b'x' * 50000
+                cached_ids = cached_ids + [large_data]
 
             else:
 
