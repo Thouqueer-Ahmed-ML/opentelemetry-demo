@@ -123,12 +123,12 @@ def get_product_list(request_product_ids):
 
                 cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
                 response_ids = [x.id for x in cat_response.products]
+                product_ids = response_ids
 
                 # Assume we're filling the cache with new products
                 # Append 1 KB of data to increase memory usage
-                large_data = b'x' * 10000
-                cached_ids = cached_ids + [large_data]
-                product_ids = response_ids
+                # large_data = b'x' * 10000
+                # cached_ids = cached_ids + [large_data]
 
             else:
 
@@ -169,6 +169,7 @@ def check_feature_flag(flag_name: str):
 
 
 if __name__ == "__main__":
+    print("Test Purposes. To ensure image is being fetched etc.")
     service_name = must_map_env('OTEL_SERVICE_NAME')
     api.set_provider(FlagdProvider(host=os.environ.get('FLAGD_HOST', 'flagd'), port=os.environ.get('FLAGD_PORT', 8013)))
 
